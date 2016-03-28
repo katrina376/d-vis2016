@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>[D-Vis][Prj1] d3js - Plot 2 - 98</title>
+<style>
+body
+{
+    width: 100%;
+    font-family: Arial, "Microsoft JhengHei", sans-serif;
+    color: black;
+}
+svg
+{
+    shape-rendering: crispEdges;
+}
+
+rect
+{
+    fill: #fff;
+    stroke: #AAA;
+}
+
+.plots.male
+{
+    fill: #99F;
+    stroke: none;
+}
+.plots.female
+{
+    fill: #F99;
+    stroke: none;
+}
+
+.axis path,
+.axis line
+{
+    fill: none;
+    stroke: #AAA;
+}
+
+</style>
+<body>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="./demical.js"></script>
+<script>
+var PATH = "./data/";
+var FILENAME_HEAD = "death.";
+var FILENAME_YEAR = "98";
+var FORMAT = ".csv";
+
+var FILENAME = PATH + FILENAME_HEAD + FILENAME_YEAR + FORMAT;
+
+/* Parameters Settings */
+var em = +(window.location.hash.substring(1));
+if (!window.location.hash) { em = 16; };
+var margin = { top: 6 * em, right: 2 * em, bottom: 4 * em, left: 2 * em, gap: 4 * em };
+var width = em * 80 - margin.left - margin.right;
+var subwidth = (width - margin.gap) / 2;
+var height =  em * 60 - margin.top - margin.bottom;
+
+
+
+d3.csv(FILENAME, function(input){
+    // Find Data Max
+    var d_max = 0;
+    for (var i in input)
+    {
+        if (+input[i].Male > d_max) { d_max = +input[i].Male; }
+        if (+input[i].Female > d_max) { d_max = +input[i].Female; }
+    }
+
+    d_max = 20500; // Special Case ti adjust to other dataset
+
+    /* Axis Scaling */
+    var xScale = {
+        Male : d3.scale.linear()
+                 .domain([0, Math.ceil10(d_max * 1.1, 3)])
+                 .range([subwidth, 0]),
+        Female : d3.scale.linear()
+                   .domain([0, Math.ceil10(d_max * 1.1, 3)])
+                   .range([0, subwidth]),
+    }
+
+    var yScale = d3.scale.linear()
+                   .domain([0, input.length])
+                   .range([height, 0]);
+
+    var xAxis = {
+        Male : d3.svg.axis()
+                 .scale(xScale.Male)
+                 .orient("bottom")
+                 .tickSize(-height)
+                 .tickPadding(0.5 * em),
+        Female : d3.svg.axis()
+                   .scale(xScale.Female)
+                   .orient("bottom")
+                   .tickSize(-height)
+                   .tickPadding(0.5 * em),
+    }
+
+    var canvas = d3.select("body").append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom);
+
+    /* Groups */
+    var axisGroup = {
+        Title : canvas.append("g")
+                      .attr("transform", "translate(" + margin.left + "," + em * 2 + ")"),
+        Male : canvas.append("g")
+                     .attr("transform", "translate(" + margin.left + "," + margin.top + ")"),
+        Female : canvas.append("g")
+                       .attr("transform", "translate(" + (margin.left + subwidth + margin.gap) + "," + margin.top + ")"),
+        Labels : canvas.append("g")
+                       .attr("transform", "translate(" + (margin.left + subwidth) + "," + margin.top + ")"),
+    }
+
+    // Title
+    axisGroup.Title.append("text").text("民國" + FILENAME_YEAR + "年各年齡層死亡人口")
+             .attr({
+                "text-anchor" : "Middle",
+                "x"           : width / 2,
+                "y"           : 0.5 * em,
+                "font-size"   : 2 * em,
+             });
+
+    // Male
+    axisGroup.Male.append("rect")
+             .attr("width", subwidth)
+             .attr("height", height)
+             .attr("stroke-width", 0.05 * em);
+
+    axisGroup.Male.append("g")
+             .attr({
+                "class" : "x axis",
+                "transform" : "translate(0," + height + ")",
+                "font-size"   : 0.75 * em,
+                "stroke-width" : 0.05 * em,
+             }).call(xAxis.Male);
+
+    axisGroup.Male.append("text").text("男性")
+             .attr({
+                "text-anchor" : "Middle",
+                "x"           : subwidth / 2,
+                "y"           : -1 * em,
+                "font-size"   : 1.5 * em,
+             });
+
+    axisGroup.Male.append("text").text("(人數)").attr({
+                "text-anchor" : "middle",
+                "x"           : subwidth * 0.5,
+                "y"           : height + 2.5 * em,
+                "font-size"   : em,
+             });
+
+    axisGroup.Male.selectAll("void").data(input).enter()
+             .append("rect").attr({
+                "class"  : "plots male",
+                "height" : 2 * em,
+                "width"  : function(d){return subwidth - xScale.Male(d.Male); },
+                "x"      : function(d){return xScale.Male(d.Male); },
+                "y"      : function(d, n){return yScale(n + 0.5) -  1.5 * em; },
+             });
+
+    axisGroup.Male.selectAll("void").data(input).enter()
+             .append("text").text(function(d){ return d.Male; })
+             .attr({
+                "text-anchor" : "end",
+                "x"           : function(d){return xScale.Male(d.Male) - 0.25 * em; },
+                "y"           : function(d, n){return yScale(n + 0.5) -  0.25 * em; },
+                "font-size"   : 0.75 * em,
+                "fill"        : "#000",
+             });
+
+    // Female
+    axisGroup.Female.append("rect")
+             .attr("width", subwidth)
+             .attr("height", height)
+             .attr("stroke-width", 0.05 * em);
+
+    axisGroup.Female.append("g")
+             .attr({
+                "class" : "x axis",
+                "transform" : "translate(0," + height + ")",
+                "font-size"   : 0.75 * em,
+                "stroke-width" : 0.05 * em,
+             }).call(xAxis.Female);
+
+    axisGroup.Female.append("text").text("女性")
+             .attr({
+                "text-anchor" : "Middle",
+                "x"           : subwidth / 2,
+                "y"           : -1 * em,
+                "font-size"   : 1.5 * em,
+             });
+
+    axisGroup.Female.append("text").text("(人數)").attr({
+                "text-anchor" : "middle",
+                "x"           : subwidth * 0.5,
+                "y"           : height + 2.5 * em,
+                "font-size"   : em,
+             });
+
+
+    axisGroup.Female.selectAll("void").data(input).enter()
+             .append("rect").attr({
+                "class"  : "plots female",
+                "width"  : function(d){return xScale.Female(d.Female); },
+                "height" : 2 * em,
+                "x"      : 0,
+                "y"      : function(d, n){return yScale(n + 0.5) -  1.5 * em},
+             });
+
+    axisGroup.Female.selectAll("void").data(input).enter()
+             .append("text").text(function(d){ return d.Female; })
+             .attr({
+                "text-anchor" : "start",
+                "x"           : function(d){return xScale.Female(d.Female) + 0.25 * em; },
+                "y"           : function(d, n){return yScale(n + 0.5) -  0.25 * em; },
+                "font-size"   : 0.75 * em,
+                "fill"        : "#000",
+             });
+
+    // Labels
+    axisGroup.Labels.selectAll("void").data(input).enter()
+             .append("text").text(function(d){ return d.Age; })
+             .attr({
+                "text-anchor" : "middle",
+                "x"           : margin.gap * 0.5,
+                "y"           : function(d, n){return yScale(n + 0.5) -  0.25 * em; },
+                "font-size"   : em,
+             });
+    axisGroup.Labels.append("text").text("(歲)").attr({
+                "text-anchor" : "middle",
+                "x"           : margin.gap * 0.5,
+                "y"           : 0,
+                "font-size"   : em,
+             });
+});
+</script>
+</body>
